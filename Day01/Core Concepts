@@ -1,0 +1,87 @@
+1. Monolithic Vs Microservices
+
+The main difference is that a monolithic architecture builds an application as one single unit, while a microservices architecture breaks 
+it into a collection of smaller, independent services
+
+Quick Comparison
+
+Monolithic Architecture                                    Microservices Architecture
+One large codebase                                         Many small codebases
+Simple to start                                            Complex to design
+Single point of failure                                    Isolated failures
+Shared database                                            Separate databases
+Scales all at once                                         Scales pieces separately
+
+Monolithic Architecture.
+
+Easy Setup: It is very simple to build, test, and deploy at first.
+Fast Changes: You can change parts easily because everything is in one place.
+Big Risk: If one small piece breaks, the whole application can crash.
+Hard Scaling: To grow the app, you must copy the whole giant system onto new servers.
+
+Microservices Architecture
+
+Smart Growth: You can scale up just the busy parts without touching the rest.
+Safe Coding: If one block breaks, the other parts keep working fine.
+Tech Freedom: Teams can use different computer languages for different blocks.
+High Complexity: It is hard to connect, secure, and test all the moving pieces.
+
+2. Kubernetes architecture
+
+Kubernetes architecture works like a shipping port that manages container ships, where a central control tower coordinates workers to load,
+move, and monitor cargo. It uses a Control Plane to make decisions and Worker Nodes to run your applications.
+
+The Control Plane (The Brain)
+The Control Plane makes choices about your cluster. It detects when things break and starts up new apps.
+
+API Server: The front door for all commands.
+etcd: The secure backing store that holds all cluster data.
+Scheduler: The guide that chooses which node runs a new app.
+Controller Manager: The boss that keeps the actual state matching your desired state.
+Cloud Controller: The bridge that talks to cloud providers like Google Cloud or AWS.
+
+Worker Nodes (The Muscle)
+Worker Nodes do the actual heavy lifting. They host the containers that form your application.
+
+Kubelet: The captain on the ship that ensures containers run safely.
+Kube-Proxy: The network helper that lets traffic reach your apps.
+Container Runtime: The software, like Docker or containerd, that runs the containers.
+Pods: The smallest building blocks that hold one or more containers.
+
+How They Talk
+
+You tell the API Server what you want using a tool like kubectl. The Scheduler finds a Worker Node with free space. The Kubelet on that
+node takes over and starts the Pod.
+
+Kubernetes cluster
+A Kubernetes cluster is a set of node machines that run containerised applications together as a single system. It acts like a team of 
+computers working under one manager to make sure your apps stay online, scale up smoothly, and never drop traffic.
+
+The Two Main Parts
+A cluster always needs two types of machines to function:
+
+The Control Plane: The manager computer that coordinates everything.
+Worker Nodes: The worker computers that run your apps inside Pods.
+
+Essential Cluster Features
+Self-Healing: If a container crashes, the cluster restarts it right away.
+Auto-Scaling: It adds more nodes or pods automatically when traffic spikes.
+Load Balancing: It distributes web traffic evenly so no single machine gets overloaded.
+High Availability: If one computer breaks, your app keeps running on the other ones.
+
+Ways to Get a Cluster
+
+Type                Best For                  Popular Options
+Managed Cloud      Real business apps         Google GKE, AWS EKS, Azure AKS
+Local / Learning   Testing on your laptop     Minikube, Kind, K3s
+Bare Metal         Full control of hardware   Kubeadm setup on your own servers
+
+A Kubernetes cluster turns multiple separate computers into one massive supercomputer for running apps. 
+It automates the hard work of managing software so humans do not have to watch it 24/7.
+
+Set up on local/AWS EC2: (Video :28:00 - :43:00)
+Installed Kind and Kubectl
+
+Installed Minikube (Video :56:00 - 1:03)
+
+Installed Kubeadm (Video :1:04 - 1:19)
