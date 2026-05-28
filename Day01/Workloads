@@ -1,0 +1,243 @@
+ReplicaSet Vs StatefulSet Vs Deployment (Video - 1:50
+
+Deployments manage standard, stateless apps.
+StatefulSets manage apps that need unique identities and saved data.
+ReplicaSets keep a set number of identical Pods running.
+
+Quick Comparison
+
+Feature                    ReplicaSet                          Deployment                              StatefulSet
+Main Use                   Basic scaling                       Stateless apps                          Stateful apps
+Pod Names                  Random suffixes                     Random suffixes                         Fixed index numbers
+Storage                    Shared volume                       Shared volume                           Unique volume per Pod
+Rollouts                   Manual updates                      Automated rollouts                      Careful, ordered updates
+
+1. ReplicaSet
+
+A ReplicaSet ensures that a specific number of Pods are running at the same time. It is a simple tool that watches your cluster and 
+starts or stops Pods to match your target number. You rarely create ReplicaSets directly. Instead, you use Deployments to manage them for
+you.
+
+Best for: Ensuring basic app uptime.
+Pod Identity: Every Pod is identical and interchangeable.
+Example: Running three copies of a simple web page.
+
+2. Deployment
+
+A Deployment is a higher-level tool that controls ReplicaSets. It lets you update your app to a new version without downtime. If an 
+update fails, the Deployment can automatically roll back to the old version. It is the most common way to deploy stateless apps.
+
+Best for: Web servers, APIs, and stateless apps.
+Key Feature: Easy, automated app updates.
+Example: Hosting an online store front-end that saves no local data.
+
+3. StatefulSet
+
+A StatefulSet manages apps that require a unique identity or persistent storage. Unlike standard Pods, these Pods are not interchangeable.
+They are created in a strict order (0, 1, 2) and keep their exact same name and storage disk even if they restart.
+
+Best for: Databases and clustered apps.
+Key Feature: Unique storage and fixed network IDs for each Pod.
+Example: Running databases like MySQL, PostgreSQL, or MongoDB.
+
+Labels and Selectors (Video - 1:52
+Labels and selectors are key-value pairs that Kubernetes uses to group and filter resources. Labels are tags attached to resources, and
+selectors are queries used to find those tags.
+
+What are Labels?
+
+Labels are metadata tags attached to Kubernetes objects like Pods. They do not change how the Pod runs. Instead, they help organize your 
+system.
+
+Key-value format: Written as key: value (for example, environment: production).
+Flexible naming: You can choose any names that make sense to your team.
+Common uses: Marking app names, release versions, or team ownership.
+
+What are Selectors?
+
+Selectors are filters used to look up objects based on their labels. Since Kubernetes resources are loosely linked, one resource finds 
+another by matching labels.
+
+Equality-based: Finds exact matches, like environment == production.
+Set-based: Finds a range of matches, like environment in (production, staging).
+
+How They Work Together (YAML Example)
+This example shows how a Service uses a selector to find and route traffic to a specific Pod.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-pod
+  labels:                  # 🏷️ Attached Label
+    app: frontend
+    env: production
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-service
+spec:
+  selector:                # 🔍 Selector Query
+    app: frontend          # Finds the Pod with the matching label
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+
+Why Use Labels and Selectors?
+
+Traffic Routing: Services use selectors to send user traffic to the correct backend Pods.
+Controller Tracking: Deployments use selectors to know which ReplicaSets and Pods they are responsible for managing.
+Easy Searching: Developers can filter cluster resources quickly using commands like kubectl get pods -l env=production.
+
+Rolling Update in Deployment (Video - 1:57 - 2:04)
+
+A rolling update is the default way Kubernetes updates an application inside a Deployment. It replaces old Pods with new ones gradually,
+ensuring your app has zero downtime during the update.
+
+How It Works
+Instead of taking down the entire application at once, a rolling update changes your setup step-by-step:
+
+Starts New Pods: Kubernetes creates a new Pod using your updated container image.
+Checks Health: It waits for the new Pod to become healthy and ready to take traffic.
+Terminates Old Pods: Once the new Pod is ready, Kubernetes shuts down an old Pod.
+Repeats: This process continues until all Pods are running the new version.
+
+The Two Key Controls
+
+You can fine-tune exactly how fast or slow this update happens by adding two settings to your manifest spec.strategy.rollingUpdate:
+
+maxSurge: The maximum number of extra Pods Kubernetes can create above your target number during the update. For example, if you want 4
+Pods and set this to 1, Kubernetes can temporarily run 5 Pods.
+
+maxUnavailable: The maximum number of Pods that can be offline or broken during the update process. For example, if you want 4 Pods and 
+set this to 1, Kubernetes ensures at least 3 Pods are always running.
+
+You can set these options using whole numbers (like 1) or percentages (like 25%).
+
+YAML Manifest ExampleHere is a Deployment manifest configured to perform a controlled rolling update:
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-web-app
+spec:
+  replicas: 4
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1          # Max 1 extra Pod allowed during update
+      maxUnavailable: 0    # Never let any Pods go down during update
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25.1 # Changing this version triggers the update
+        ports:
+        - containerPort: 80
+
+Useful Commands
+
+You can manage and monitor your rolling updates from the command line:
+
+Trigger an update: kubectl set image deployment/my-web-app nginx=nginx:1.25.2
+Check status: kubectl rollout status deployment/my-web-app
+Undo a mistake: kubectl rollout undo deployment/my-web-app
+
+ReplicaSet (Video -  2:04 - 2:06)
+
+A ReplicaSet is a core Kubernetes resource that ensures a specific number of identical Pods are running at all times. If a Pod crashes, 
+gets deleted, or the underlying node fails, the ReplicaSet automatically spots the issue and starts a new Pod to replace it.
+
+Core Functions
+
+Redundancy: It keeps multiple copies of your app running to handle user traffic.
+Scale: It lets you easily increase or decrease the number of running Pods.
+Self-Healing: It replaces failed or deleted Pods automatically to maintain uptime.
+
+YAML Manifest Example
+
+While you rarely create ReplicaSets directly in production, here is what a basic manifest looks like:
+
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: frontend-replicaset
+spec:
+  replicas: 3             # 🎯 Target number of Pods to keep running
+  selector:
+    matchLabels:
+      tier: frontend      # 🔍 Finds Pods with this label
+  template:
+    metadata:
+      labels:
+        tier: frontend    # 🏷️ Label given to new Pods it creates
+    spec:
+      containers:
+      - name: php-redis
+        image: gcr.io/google_samples/gb-frontend:v3
+
+How a ReplicaSet Decides What to Manage
+
+A ReplicaSet uses labels and selectors to manage Pods. It does not actually own the Pods it creates. Instead, it constantly searches the
+cluster for any Pods that match its spec.selector.
+
+Too few Pods: If it finds fewer matching Pods than the replicas count, it launches new ones using the template.
+
+Too many Pods: If you manually create an extra Pod with the exact same label, the ReplicaSet will delete it to match the target number.
+
+ReplicaSet vs. Deployment
+In real-world setups, you should almost always use a Deployment instead of a raw ReplicaSet.
+
+ReplicaSets only manage the number of Pods. They do not know how to safely update container images to new versions.
+Deployments manage ReplicaSets automatically. When you change an image version, a Deployment creates a new ReplicaSet and performs a
+smooth rolling update for you.
+
+Daemon Sets (Video 2:07 - 2:12)
+
+A DaemonSet is a special Kubernetes resource that ensures a single copy of a specific Pod runs on every single worker node in your 
+cluster. When you add a new node to the cluster, the DaemonSet automatically adds the Pod to it. If you remove a node, the Pod is 
+removed too.
+
+Core Functions
+
+Total Coverage: It automatically deploys exactly one Pod per node across the cluster.
+Auto-Scaling: It senses when the cluster grows or shrinks and adjusts Pods automatically.
+Infrastructure Focused: It is mostly used for background system tools rather than user-facing apps.
+
+Common Use Cases
+Unlike Deployments that balance app traffic, DaemonSets are perfect for local node tools:
+
+Log Collection: Running a tool like Fluentd or Logstash on every node to gather system logs.
+Node Monitoring: Running agents like Prometheus Node Exporter to track CPU and memory health.
+Cluster Networking: Running network plug-ins like Calico or Flannel to manage cluster traffic.
+
+YAML Manifest Example
+Here is a basic manifest file for a DaemonSet that runs a logging tool:
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd-elasticsearch
+spec:
+  selector:
+    matchLabels:
+      name: fluentd-logging
+  template:
+    metadata:
+      labels:
+        name: fluentd-logging
+    spec:
+      containers:
+      - name: fluentd-elasticsearch
+        image: quay.io/fluentd_elasticsearch/fluentd:v2.5.2
