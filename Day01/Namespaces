@@ -1,0 +1,107 @@
+Namespaces in Kubernetes (Video 1:19 - )
+
+A Kubernetes namespace is a way to divide a single cluster into separate virtual spaces. It acts like fences inside a community garden, 
+letting different teams or projects share the same plot of land without stepping on each others' plants.
+
+Why Use Namespaces?
+
+Stop Name Clashes: Two teams can name their application my-web-app without causing any errors.
+Share Costs: You only buy one cluster instead of buying separate hardware for every team.
+Limit Power: You can stop the testing team from accidentally editing the live store website.
+Control Resources: You can set limits so the marketing app does not hog all the memory.
+
+The Standard Namespaces
+
+When you start a new cluster, Kubernetes automatically builds a few standard spaces for you [1]:
+
+default: The main room where your apps go if you do not pick a specific namespace [1].
+kube-system: The secret engine room where Kubernetes keeps its own internal control tools [1].
+kube-public: A public room that anyone can see, mostly used for cluster setup info [1].
+kube-node-lease: A small closet that holds heartbeats to check if computers are still online [1].
+
+Working with Namespaces
+
+You can create and look inside spaces using simple commands in your terminal:
+
+Create a space: kubectl create namespace team-alpha [2]
+See all spaces: kubectl get namespaces [1]
+Put an app in a space: kubectl apply -f app.yaml --namespace=team-alpha [2]
+
+Manifest file in kubernetes
+Manifest file in kubernetesA Kubernetes manifest file is a text file that tells Kubernetes how to set up your application resources. It 
+is usually written in YAML format, but it can also use JSON. You write the desired state of your system in this file, and Kubernetes 
+works automatically to make the cluster match it.
+
+The Four Required Fields
+
+Every manifest file needs four basic pieces of information:
+
+apiVersion: This tells Kubernetes which version of its API code to use.
+kind: This tells Kubernetes what type of resource you want to create. Examples include a Pod, a Deployment, or a Service.
+metadata: This holds basic info to identify the resource, like its name or labels.
+spec: This details exactly how you want the resource to look and behave. This includes things like container images or port numbers.
+
+A Simple Example
+Here is a basic example of a manifest file for a single Pod resource:
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-web-app
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:latest
+
+Why Developers Use Manifest Files
+
+Declarative style: You describe the final result you want, rather than giving step-by-step commands.
+Version control: You can save these files in Git to track changes over time.
+Automation: These files easily plug into CI/CD pipelines to deploy apps automatically.
+Clean sorting: You can separate multiple resources in one single file by using three dashes (---).
+
+ReplicaSet Vs StatefulSet Vs Deployment (Video - 1:50
+
+Deployments manage standard, stateless apps.
+StatefulSets manage apps that need unique identities and saved data.
+ReplicaSets keep a set number of identical Pods running.
+
+Quick Comparison
+
+Feature                    ReplicaSet                          Deployment                              StatefulSet
+Main Use                   Basic scaling                       Stateless apps                          Stateful apps
+Pod Names                  Random suffixes                     Random suffixes                         Fixed index numbers
+Storage                    Shared volume                       Shared volume                           Unique volume per Pod
+Rollouts                   Manual updates                      Automated rollouts                      Careful, ordered updates
+
+1. ReplicaSet
+
+A ReplicaSet ensures that a specific number of Pods are running at the same time. It is a simple tool that watches your cluster and 
+starts or stops Pods to match your target number. You rarely create ReplicaSets directly. Instead, you use Deployments to manage them for
+you.
+
+Best for: Ensuring basic app uptime.
+Pod Identity: Every Pod is identical and interchangeable.
+Example: Running three copies of a simple web page.
+
+2. Deployment
+
+A Deployment is a higher-level tool that controls ReplicaSets. It lets you update your app to a new version without downtime. If an 
+update fails, the Deployment can automatically roll back to the old version. It is the most common way to deploy stateless apps.
+
+Best for: Web servers, APIs, and stateless apps.
+Key Feature: Easy, automated app updates.
+Example: Hosting an online store front-end that saves no local data.
+
+3. StatefulSet
+
+A StatefulSet manages apps that require a unique identity or persistent storage. Unlike standard Pods, these Pods are not interchangeable.
+They are created in a strict order (0, 1, 2) and keep their exact same name and storage disk even if they restart.
+
+Best for: Databases and clustered apps.
+Key Feature: Unique storage and fixed network IDs for each Pod.
+Example: Running databases like MySQL, PostgreSQL, or MongoDB.
+
+Labels and Selectors (Video - 1:52
+
+Rolling Update in Deployment (Video - 1:57
