@@ -1,0 +1,63 @@
+Jobs and Cron Job (Video - 2:21 - 2:39)
+
+A Job runs a workload until it finishes successfully. 
+
+A CronJob runs a Job automatically on a regular schedule.Unlike Deployments or ReplicaSets that keep apps running forever, Jobs and 
+CronJobs are built for tasks that have a clear beginning and end.
+
+1. Jobs
+A Job creates one or more Pods and ensures that a target number of them complete successfully. Once the task finishes, the Pod stops 
+running and goes into a completed state so you can inspect the logs.
+
+Best for: One-time tasks like data migrations, database backups, or batch processing.
+Self-Healing: If a Pod fails before finishing, the Job will start a new one to try again.
+
+Job YAML Example
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: data-cleaner
+spec:
+  template:
+    spec:
+      containers:
+      - name: cleaner
+        image: alpine
+        command: ["echo", "Data cleaning complete!"]
+      restartPolicy: Never # Required: Prevents the container from looping forever
+  backoffLimit: 4         # Number of retries before marking the Job as failed
+
+2. CronJobs
+A CronJob manages Jobs using a time-based schedule. It is exactly like the traditional Linux crontab tool, but it runs tasks inside a 
+Kubernetes cluster.
+
+Best for: Recurring tasks like weekly reports, nightly database cleanups, or hourly status checks.
+The Schedule Format: It uses five fields to set the time: Minute Hour Day-of-month Month Day-of-week. For example, 0 0 * * * means "every
+night at midnight."
+
+CronJob YAML Example
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nightly-backup
+spec:
+  schedule: "0 0 * * *"   # ⏰ Runs every single night at midnight
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup
+            image: alpine
+            command: ["echo", "Backup finished!"]
+          restartPolicy: OnFailure
+
+Useful Commands
+
+Run a CronJob manually right now: 
+
+kubectl create job --from=cronjob/nightly-backup manual-backup-run
+See running Jobs: kubectl get jobs
+See scheduled CronJobs: kubectl get cronjobs
