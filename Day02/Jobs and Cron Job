@@ -61,3 +61,201 @@ Run a CronJob manually right now:
 kubectl create job --from=cronjob/nightly-backup manual-backup-run
 See running Jobs: kubectl get jobs
 See scheduled CronJobs: kubectl get cronjobs
+
+Storage (Video 2:40 - 3:03)
+
+A Volume is a temporary storage folder tied to a single Pod. 
+A Persistent Volume is long-term storage that stays safe even if the Pod is completely deleted.
+
+1. Volumes (Episodic Storage)A standard Kubernetes volume lives inside a single Pod. Containers in that Pod can share files through it.
+
+Life Span: It lasts exactly as long as the Pod. If the container crashes, the files stay safe. If the Pod is deleted, the files are gone
+forever.
+Common Type: emptyDir is a blank folder created when a Pod starts. It is great for quick scratch space or temporary caches.
+
+2. Persistent Volumes (Long-Term Storage)For important data like databases, you need storage that lives outside of any Pod. 
+Kubernetes uses a two-part system to handle this:
+
+PersistentVolume (PV): A piece of storage set up by an administrator. It connects to real storage like a cloud disk or a local hard drive.
+PersistentVolumeClaim (PVC): A request for storage made by a developer. It asks for a specific size (like 10 Gigabytes) and type of access.
+Kubernetes automatically matches the claim (PVC) to an available volume (PV).
+
+YAML Manifest Example
+This example shows how a developer requests storage using a PVC, and how a Pod uses that claim to store data safely.
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: db-storage-claim
+spec:
+  accessModes:
+    - ReadWriteOnce       # Can be read and written by a single node
+  resources:
+    requests:
+      storage: 10Gi       # Requests 10 Gigabytes of space
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: database-pod
+spec:
+  containers:
+  - name: mysql
+    image: mysql:latest
+    volumeMounts:
+    - name: secure-data
+      mountPath: /var/lib/mysql # Where the storage appears inside the container
+  volumes:
+  - name: secure-data
+    persistentVolumeClaim:
+      claimName: db-storage-claim # Connects to the PVC above
+
+Dynamic Provisioning: StorageClassesInstead of making administrators create every single PersistentVolume by hand, Kubernetes can create
+them on demand using a StorageClass. When a developer creates a PVC, the StorageClass automatically talks to your cloud provider 
+(like AWS, Azure, or Google Cloud) to create the disk instantly.
+
+Services (3:03 - 3:13)
+
+A Service is a permanent network address that points to a group of running Pods. Because Pods are constantly created and destroyed, 
+their internal IP addresses change all the time. A Service gives you a stable IP address and DNS name so other apps can always find them.
+
+Core Functions
+
+Stable Networking: Provides a fixed IP that never changes.
+Load Balancing: Distributes incoming traffic evenly across all matching Pods.
+Service Discovery: Allows Pods to find each other easily using simple DNS names.
+
+The 4 Service Types
+
+Kubernetes offers four ways to expose your application network:
+
+ClusterIP (Default): Exposes the Service on an internal IP. It makes the app reachable only from inside the cluster.
+NodePort: Opens a specific port (usually between 30000–32767) on every single Node. This makes the app reachable from outside the cluster
+using any Node's IP address.
+LoadBalancer: Connects to your cloud provider (like AWS or Google Cloud) to create a real internet-facing load balancer.
+ExternalName: Maps a Kubernetes Service to an external DNS name (like my-database.com) instead of matching Pods.
+
+YAML Manifest ExampleThis example shows a ClusterIP Service that uses a selector to find and route traffic to web frontend Pods:
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+spec:
+  type: ClusterIP          # 🌐 Accessible only inside the cluster
+  selector:
+    app: web-frontend      # 🔍 Sends traffic to Pods with this label
+  ports:
+  - protocol: TCP
+    port: 80               # 🔌 The port the Service listens on
+    targetPort: 8080       # 🚀 The actual port running inside the Pod container
+
+How it Works: 
+EndpointsWhen you create a Service with a selector, Kubernetes automatically creates an internal helper object called an Endpoint. The 
+Endpoint keeps a live list of the changing IP addresses of all healthy Pods that match your selector labels. When a Pod dies, Kubernetes
+removes its IP from the Endpoint list instantly so no traffic is lost.
+
+
+Mini Project (Django Notes App - 3:13 - 3:24) Implemented the project using K8s Namespace, Service, Deployment in just 11 minutes
+
+Ingress (3:24 - 3:44)
+
+An Ingress is an API object that manages external access to the services in a cluster, typically HTTP and HTTPS [1]. It acts as a smart
+entry point or reverse proxy, sitting in front of your Services to route incoming internet traffic based on domain names or URL paths
+[1, 2].
+While a LoadBalancer Service creates a costly cloud load balancer for every single application, an Ingress lets you use just one
+single entry point to route traffic to dozens of different internal apps [1].
+
+Ingress vs. Ingress Controller
+To use Ingress, you need two distinct components in your cluster [3]:Ingress Resource: The configuration file (the YAML manifest) where
+you write your routing rules [1, 3].Ingress Controller: The actual software that reads those rules and moves the traffic [3]. Kubernetes
+does not include a controller by default [3]. You must install a popular one like NGINX Ingress Controller, Traefik, or Emissary-ingress
+[3].
+
+YAML Manifest Example
+
+This example shows how an Ingress resource takes internet traffic for mywebsite.com and splits it up. It sends traffic for /analytics to 
+one backend service and all other traffic to a frontend service [1]
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: main-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: / # Tells the controller how to handle paths
+spec:
+  ingressClassName: nginx                         # Specifies which controller should read this
+  rules:
+  - host: mywebsite.com                           # 🌐 Matches the domain name
+    http:
+      paths:
+      - path: /analytics                          # 🛤️ Path rule 1
+        pathType: Prefix
+        backend:
+          service:
+            name: analytics-service
+            port:
+              number: 80
+      - path: /                                   # 🛤️ Path rule 2 (Catch-all)
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-service
+            port:
+              number: 80
+
+Key Benefits of Ingress
+
+Cost Savings: You share one cloud load balancer among many internal cluster services [1].
+Path-Based Routing: Send traffic to different apps based on the URL path (like /api vs /images) [1].
+Host-Based Routing: Route traffic based on different domain names (like site-a.com vs site-b.com) [1].
+Secure Connections (SSL/TLS): You can centralise your security certificates at the Ingress level to secure your websites easily [1, 2].
+
+Annotations in Kubernetes (3:44 - 3:47)
+
+Annotations are key-value pairs used to attach non-identifying metadata to Kubernetes objects.
+
+Unlike labels, which Kubernetes uses to group and select resources, annotations are not used to filter or select objects. Instead, they 
+are used to store extra background information that tools, libraries, or system administrators can read.
+
+Common Use Cases
+
+Annotations are highly flexible and usually serve these purposes:
+
+Tool Configuration: Telling external tools how to handle the object. For example, telling an Ingress controller specific traffic rules or 
+telling a backup tool to ignore a volume.
+Release Details: Storing tracking information like build numbers, release dates, or git commit hashes.
+Contact Information: Listing the specific team, email address, or Slack channel responsible for the resource.
+Audit Tracking: Recording who modified the resource last or what tool created it.
+
+YAML Manifest Example
+This example shows a Deployment that uses annotations to store contact info, build data, and a configuration rule for a monitoring tool:
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: billing-app
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    owner: "finance-team@company.com"         # 👥 Team contact info
+    buildNumber: "release-v2.1.0-build45"     # 🚀 CI/CD tracking info
+    prometheus.io/scrape: "true"              # 📊 Config instruction for monitoring tools
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: billing
+  template:
+    metadata:
+      labels:
+        app: billing
+    spec:
+      containers:
+      - name: billing-service
+        image: billing:v2.1.0
+
+Useful Commands
+You can add, update, or view annotations straight from the terminal:
+Add an annotation: kubectl annotate pods my-pod-name icon-url="http://example.com"
+Overwrite an existing annotation: kubectl annotate pods my-pod-name icon-url="http://example.com" --overwrite
+View annotations: Look for the Annotations: section when you run kubectl describe pod my-pod-name.
