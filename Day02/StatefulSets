@@ -1,0 +1,182 @@
+StatefulSets (3:47 - 4:10)
+
+A StatefulSet is a specialized Kubernetes workload object used to manage stateful applications.
+
+Unlike a Deployment, which treats Pods as interchangeable and replaceable, a StatefulSet maintains a sticky identity for each of its Pods
+[3]. These Pods are created from the same spec but are not interchangeable; each keeps a persistent identifier across any rescheduling [3].
+
+Key Characteristics
+
+Stable Network IDs: Pods get unique, predictable names like mysql-0, mysql-1, and mysql-2 [3]. They keep these names even if they crash and
+restart on a different node.
+Stable Persistent Storage: Each Pod gets its own unique persistent disk volume [3]. If mysql-1 fails and restarts, it automatically 
+reconnects to its exact same data volume.
+Ordered Deployment: Pods are created, updated, and deleted in a strict, sequential order (from 0 to N-1) [3].
+
+Common Use Cases
+StatefulSets are designed for complex systems that require data consistency and coordination:
+Relational Databases: Systems like MySQL, PostgreSQL, or SQL Server.
+NoSQL Databases: Distributed databases like MongoDB, Cassandra, or Redis clusters.
+Distributed Services: Applications like Apache Kafka, ZooKeeper, or Elasticsearch that need fixed cluster cluster roles.
+
+YAML Manifest Example
+A StatefulSet requires a Headless Service (a Service with clusterIP: None) to manage the network identities of the individual Pods [3]. 
+It also uses a volumeClaimTemplates block to automatically provision a unique disk for each Pod.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-headless
+  labels:
+    app: nginx
+spec:
+  ports:
+  - port: 80
+    name: web
+  clusterIP: None       # 🌐 Headless service for stable DNS names
+  selector:
+    app: nginx
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: web-stateful
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  serviceName: "nginx-headless"
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: registry.k8s.io/nginx-slim:0.24
+        ports:
+        - containerPort: 80
+          name: web
+        volumeMounts:
+        - name: www
+          mountPath: /usr/share/nginx/html
+  volumeClaimTemplates: # 💾 Automatically creates a unique PVC for every Pod
+  - metadata:
+      name: www
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
+
+Crucial Storage Behavior
+When a StatefulSet is scaled down or deleted, Kubernetes will not delete the associated Persistent Volume Claims (PVCs) or data volumes.
+This is a safety feature designed to prevent accidental data loss. If you want to clean up the storage, you must delete the PVCs manually
+using kubectl delete pvc.
+
+Config Maps (4:11 - 4:18)
+
+A ConfigMap is an API object used to store non-confidential data in key-value pairs.It allows you to separate your configuration settings
+from your application code. This means you can build your container image once and change the configuration settings for different 
+environments (like development, staging, or production) without rebuilding the image.
+
+ConfigMaps vs. Secrets
+ConfigMaps are for plain-text, public configuration data. Examples include application ports, configuration files, or feature flags.
+Secrets are for sensitive data. Examples include passwords, API keys, or SSH keys. Secrets are stored securely (obfuscated or encrypted).
+
+Common Ways to Use a ConfigMap
+Your application containers can use a ConfigMap in three main ways:
+
+Environment Variables: Injecting keys as environment variables straight into the container.
+Command-Line Arguments: Passing values into the container startup command.
+Data Volume Files: Mounting the ConfigMap as a folder of configuration files inside the container.
+
+YAML Manifest Example
+This example shows a ConfigMap storing two configuration keys, and a Pod that pulls those keys in as environment variables.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-settings
+data:
+  ui_color: "blue"             # 🎨 Simple key-value pair
+  max_connections: "100"      # ⚙️ Simple configuration value
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: backend-pod
+spec:
+  containers:
+  - name: web-app
+    image: nginx:latest
+    env:
+    - name: THEME_COLOR        # 📥 Creates an environment variable in the container
+      valueFrom:
+        configMapKeyRef:
+          name: app-settings   # Looks at the ConfigMap above
+          key: ui_color        # Pulls the value "blue"
+    - name: MAX_CONN
+      valueFrom:
+        configMapKeyRef:
+          name: app-settings
+          key: max_connections
+
+Useful Commands
+
+You can create and check ConfigMaps directly from your terminal:
+
+Create from a file: kubectl create configmap my-config --from-file=app.properties
+Create from literal values: kubectl create configmap UI-config --from-literal=color=blue
+View the configuration data: kubectl get configmap app-settings -o yaml
+
+Secrets (Video 4:10 - 4:32)
+
+A Secret is an API object used to store and manage sensitive information.It lets you save data like passwords, API keys, and tokens safely
+without putting them directly into your application code or container images [1].
+
+ConfigMaps vs. Secrets
+ConfigMaps store plain-text, non-confidential configuration data (like app settings or theme colors).
+Secrets store sensitive data. By default, Kubernetes stores Secret data as Base64 encoded strings.
+
+Important: Base64 encoding is not encryption. Anyone with access to the file or cluster can easily decode it. You should always use extra
+security controls, like encryption at rest, to fully secure your Secrets.
+
+Common Ways to Use a Secret
+Just like ConfigMaps, your containers can use Secrets in two main ways:
+Environment Variables: Injecting the secret data directly into the application environment.
+Volume Mounts: Mounting the secret as a file inside a secure, temporary folder in the container.
+
+YAML Manifest Example
+This example shows a Secret holding a database password, and a Pod that reads that password using an environment variable.
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-credentials
+type: Opaque               # Standard type for arbitrary user-defined data
+data:
+  password: cGFzc3dvcmQxMjM= # 🔒 The string "password123" encoded in Base64
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app-pod
+spec:
+  containers:
+  - name: my-app
+    image: nginx:latest
+    env:
+    - name: DATABASE_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: db-credentials # Looks at the Secret above
+          key: password        # Pulls the decoded value into the container
+
+Useful Commands
+You can create Secrets quickly using the command line without writing out the Base64 values by hand:
+
+Create from literal values: kubectl create secret generic db-credentials --from-literal=password=password123
+Create from a file: kubectl create secret generic ssh-key-secret --from-file=~/.ssh/id_rsa
+View the Secret: kubectl get secret db-credentials -o yaml
