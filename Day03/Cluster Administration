@@ -1,1 +1,31 @@
-RBAC (6:11 - 
+RBAC (6:11 - 6:45)
+
+RBAC in kubernetesRole-Based Access Control (RBAC) is the native authorization framework in Kubernetes that regulates who can perform 
+specific actions on resources within a cluster. It operates on a purely additive model, meaning there are no "deny" rules; if an action is
+not explicitly permitted, it is blocked by default.
+
+The Core Pillars of RBACKubernetes RBAC determines access by evaluating three factors: Who (Subjects) is attempting to do What (Verbs) to
+Which resource (API Objects).
+
+[ SUBJECT ]  ──────────►  [ BINDING ]  ──────────►  [ ROLE ]  ──────────►  [ RESOURCE ]
+(User/ServiceAccount)    (RoleBinding/ClusterBinding)     (Rules & Verbs)        (Pods/Secrets)
+
+1. Subjects (Who)The entities requesting access to the Kubernetes API server:
+
+Users: Human accounts managed outside Kubernetes via external systems like OIDC or SSL certificates.
+Groups: Collections of users categorized externally (e.g., Azure AD or Okta groups).
+ServiceAccounts: Internal accounts managed by Kubernetes for software workloads running inside Pods.
+
+2. API Resources and Verbs (What & Where)
+
+Resources: Objects exposed by the API server, such as pods, services, secrets, or deployments.
+Verbs: The permitted actions on those resources, such as get, list, watch, create, update, patch, or delete.
+
+The Four Core RBAC ObjectsKubernetes splits authorization manifests into namespaced (restricted to one sandbox) and cluster-scoped 
+(spanning the entire environment) objects.
+
+Object                      Scope                        Function
+Role                        Namespaced                   Defines a list of allowed resources and verbs inside a specific namespace.
+ClusterRole                 Cluster-wide                 Defines rules for cluster-scoped objects (like Nodes) or global permissions across all namespaces.
+RoleBinding                 Namespaced                   Grants permissions of a Role (or a ClusterRole restricted to that namespace) to subjects.
+ClusterRoleBinding          Cluster-wide                 Grants permissions of a ClusterRole to subjects across every namespace globally.
