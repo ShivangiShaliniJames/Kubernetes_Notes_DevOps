@@ -1,4 +1,4 @@
-Scaling and Scheduling (Video - 4:32
+Scaling and Scheduling (Video - 4:32 - 6:08)
 
 Resource Quotas and Limits
 Resource Quotas and Limits in kubernetesIn Kubernetes, resource management is handled via two distinct levels: Resource Quotas, which 
@@ -145,7 +145,7 @@ network connection.
 Master Node Isolation: Restricting infrastructure management nodes so user application workloads do not accidentally consume critical 
 control plane resources.
 
-HPA (4:59 - 5:51)and VPA (5:51 - 6:08)
+HPA (4:59 - 5:51)and VPA (5:51 - 6:08) (5:20 - 5:51 HP Autoscaling implemented for Notes App project)
 
 Horizontal Pod Autoscaler (HPA) and Vertical Pod Autoscaler (VPA) are automated scaling mechanisms in Kubernetes that adjust your 
 application's compute resources based on real-time usage metrics [1]. While HPA scales out by changing the number of pod replicas, VPA 
