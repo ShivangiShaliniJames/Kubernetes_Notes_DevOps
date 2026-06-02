@@ -1,0 +1,226 @@
+Scaling and Scheduling (Video - 4:32
+
+Resource Quotas and Limits
+Resource Quotas and Limits in kubernetesIn Kubernetes, resource management is handled via two distinct levels: Resource Quotas, which 
+manage aggregate resource consumption at the Namespace level, and Requests and Limits, which regulate individual Containers and Pods. 
+Together, they prevent multi-tenant environments from starving neighboring applications and exhausting cluster capacity.
+
+Namespace Scope: ResourceQuotas
+A ResourceQuota is an administrative tool that caps the absolute maximum infrastructure resources and object counts a specific Namespace
+can use. If an incoming request (like creating a Pod) breaches this quota, the API server rejects it with an HTTP 403 Forbidden error.
+
+Compute Quotas: Restricts total requests.cpu, limits.cpu, requests.memory, and limits.memory combined across all Pods in the Namespace.
+Storage Quotas: Caps the total storage volume capacity (requests.storage) and the number of persistentvolumeclaims allowed.
+Object Count Quotas: Prevents resource sprawl by setting a ceiling on the total number of Pods, Services, ConfigMaps, Secrets, or 
+Deployments that can exist.
+
+Example ResourceQuota Manifest
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: team-alpha-quota
+  namespace: alpha-apps
+spec:
+  hard:
+    requests.cpu: "4"
+    requests.memory: 8Gi
+    limits.cpu: "8"
+    limits.memory: 16Gi
+    pods: "10"
+    services: "5"
+
+Container Scope: Requests and Limits
+While quotas track the whole Namespace, Requests and Limits are defined directly in the Container spec of a Pod template to control 
+individual workloads.
+
+Resource Requests: The guaranteed minimum amount of CPU or Memory Kubernetes promises to the container. The kube-scheduler uses this 
+number to decide which Node has enough remaining capacity to host the Pod.
+
+Resource Limits: The hard ceiling on resources a container can consume.
+  Memory Over-limit: If a container tries to use more RAM than its limit, the Linux kernel triggers an Out-Of-Memory (OOM) exception, and
+  Kubernetes restarts the container.
+  CPU Over-limit: If a container reaches its CPU limit, Kubernetes throttles its processing power rather than killing it.
+
+Example Container Manifest
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-server
+  namespace: alpha-apps
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "500m" # 0.5 cores
+      limits:
+        memory: "512Mi"
+        cpu: "1" # 1 full core
+
+The Enforcer: LimitRanges
+When you activate a ResourceQuota for CPU or Memory, Kubernetes mandates that every single Pod deployed to that Namespace must explicitly
+specify its own requests and limits. To save developers from manually writing these specifications for every file, you can use a Kubernetes
+
+LimitRange.A LimitRange automatically applies default requests and limits to any Pod created without them, ensuring compliance with the
+larger Namespace quota.
+
+Quick Reference Comparison
+
+Feature                          ResourceQuota                                    Requests & Limits
+Enforcement Level                Namespace                                        Individual Container / Pod
+Primary Purpose                  Tenant isolation and cost control                App stability and node scheduling
+Metrics Controlled               Sum of resources + total API objects             CPU, Memory, and Ephemeral Storage
+Breach Consequence               API Server blocks deployment (403 Forbidden)     Container Throttling (CPU) or OOM Kill (RAM)
+
+To check the active usage of your current quotas, you can run the command:
+kubectl describe quota -n <your-namespace>
+
+Probes (Video 4:40 - 4:48)
+In Kubernetes, probes are diagnostic health checks performed periodically by the kubelet on a container to ensure applications are running
+smoothly, self-healing when broken, and only receiving traffic when ready. They allow the cluster to automatically detect and recover from
+runtime errors without manual intervention.
+
+The Three Types of Probes
+Kubernetes utilizes three main probes to manage container lifecycles:
+
+Startup Probe: Confirms the app has launched; disables other probes until it passes to prevent premature restarts.
+Liveness Probe: Detects if an application is frozen or deadlocked, triggering a container restart.
+Readiness Probe: Determines if a container can handle traffic, removing it from Service endpoints if it fails.
+
+Probe Mechanisms
+The kubelet uses four primary methods to check health:
+HTTP Get: Checks a specific endpoint for a 200–399 response code.
+TCP Socket: Opens a connection to a specific port to check if it's open.
+Exec Command: Runs a command inside the container, passing if it returns a 0 exit code.
+gRPC: Uses the native gRPC Health Checking Protocol.
+
+Key Configuration Parameters
+Probes are configured using these common fields:
+initialDelaySeconds: Wait time before the first check.
+periodSeconds: Frequency of the checks.
+failureThreshold: Consecutive failures needed to trigger an action.
+
+Taint and Tolerance (4:48 - 5:00)
+Taints and tolerations are node-level properties in Kubernetes that allow nodes to repel certain pods so they do not get scheduled on 
+inappropriate hardware or dedicated infrastructure. While node affinity attracts pods to nodes, taints do the exact opposite by letting
+a node push pods away unless the pod explicitly has a matching toleration.
+
+The Three Taint Effects
+When a node is tainted, it applies one of three scheduling behaviors:
+NoSchedule: Strong restriction. New pods without a matching toleration will never schedule on this node. Existing pods on the node are
+unaffected.
+PreferNoSchedule: Soft restriction. The system tries to avoid placing untolerated pods on the node, but will do so if no other compute
+resources are available.
+NoExecute: Hard restriction. Evicts currently running pods immediately if they do not possess the required toleration, in addition to 
+blocking new ones.
+
+Configuration Examples
+1. Adding a Taint to a NodeTo apply a taint using the command-line interface, execute the kubectl taint command:
+
+kubectl taint nodes node1 storage-type=ssd:NoSchedule
+
+2. Adding a Toleration to a PodTo allow a pod to bypass that taint, define the tolerations array inside the Pod’s spec configuration:
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: database-pod
+spec:
+  containers:
+  - name: mysql
+    image: mysql
+  tolerations:
+  - key: "storage-type"
+    operator: "Equal"
+    value: "ssd"
+    effect: "NoSchedule"
+
+Common Production Use Cases
+Dedicated Nodes: Reserving specific nodes for machine learning workloads equipped with expensive GPU hardware.
+Eviction Handling: The control plane automatically adds taints like node.kubernetes.io/unreachable to evict pods when a node loses 
+network connection.
+Master Node Isolation: Restricting infrastructure management nodes so user application workloads do not accidentally consume critical 
+control plane resources.
+
+HPA (4:59 - 5:51)and VPA (5:51 - 6:08)
+
+Horizontal Pod Autoscaler (HPA) and Vertical Pod Autoscaler (VPA) are automated scaling mechanisms in Kubernetes that adjust your 
+application's compute resources based on real-time usage metrics [1]. While HPA scales out by changing the number of pod replicas, VPA 
+scales up by changing the CPU and memory size of existing pods [1].
+
+Core Differences 
+At A GlanceThe choice between HPA and VPA depends on whether your application scales better by adding more instances or by getting more
+powerful instances.
+
+Feature                    Horizontal Pod Autoscaler (HPA)                        Vertical Pod Autoscaler (VPA)
+Scaling Direction          Out / In (Horizontal) [1]                              Up / Down (Vertical) [1]
+Action Taken               Adds or removes Pod replicas [1]                       Increases or decreases Pod CPU/Memory [1]
+Best For                   Stateless applications (e.g., Web APIs)                Stateful or monolithic applications
+Downside                   Higher cluster overhead per replica                    Requires Pod restarts to apply changes [1]
+Metric Source              Kubernetes Metrics Server                              Kubernetes Metrics Server & VPA Recommender
+
+Horizontal Pod Autoscaler (HPA)
+HPA monitors target resource utilization (like CPU or memory) and scales your deployment deployment count to handle high demand [1].
+
+YAML Configuration Example
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: web-app-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: web-app
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+
+Vertical Pod Autoscaler (VPA)
+VPA frees you from manually setting container resource limits and requests [1]. It analyzes historical utilization data to adjust sizes
+automatically [1].
+
+VPA Operating Modes
+Auto / Recreate: Automatically updates resource requests and restarts the pod to apply them [1].
+Initial: Assigns resource sizes only when the pod is first created; never restarts them.
+Off: Only recommends sizes without modifying the pods [1]. You can view recommendations using kubectl get vpa.
+
+YAML Configuration Example
+
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: database-vpa
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: database-app
+  updatePolicy:
+    updateMode: "Auto"
+
+Critical Warning: Combining HPA and VPADo not use HPA and VPA together on the same resource metric (like CPU or Memory) [1].
+If both are set to scale based on CPU utilization, they will conflict [1]:
+
+High CPU usage occurs.
+HPA adds more pods to distribute the load.
+Simultaneously, VPA increases the CPU size of the pods.
+The load drops, triggering a sudden, unpredictable downscaling race condition that can crash your app.
+
+Exception: You can combine them if HPA scales on custom/external metrics (like HTTP request queues) while VPA scales on CPU/Memory [1].
+
+Node Affinity (6:08 - 6:11)
+Node affinity is a set of scheduling rules in Kubernetes that allows you to constrain which nodes your pods can be scheduled on based on
+labels present on those nodes. It acts as an advanced, highly flexible replacement for the older nodeSelector field, allowing you to use
+complex logic operators and express both strict requirements and soft preferences.
+
