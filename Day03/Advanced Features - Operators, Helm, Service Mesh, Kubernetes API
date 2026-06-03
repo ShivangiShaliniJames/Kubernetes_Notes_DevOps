@@ -1,0 +1,36 @@
+Operators, Helm, Service Mesh, Kubernetes API (7:32
+
+Helm is the official package manager for Kubernetes that automates the deployment, scaling, and management of complex containerized 
+applications. It operates by bundling Kubernetes manifests (like deployments, services, and ingresses) into a single, reusable package 
+called a Helm Chart.
+
+Core Concepts of Helm
+Understanding Helm requires mastering three fundamental building blocks:
+
+Chart: A blueprint package containing all the YAML templates needed to build a Kubernetes application.
+Values: A values.yaml file containing configuration parameters that inject custom data into the Chart templates.
+Release: A specific, running instance of a Chart deployed inside your Kubernetes cluster.
+
+Helm Architecture (Helm v3)Helm v3 uses a client-only architecture that interacts directly with the Kubernetes API Server.
+No Server Component: Helm v3 completely removed Tiller (the server component from Helm v2) to strictly enforce Kubernetes Role-Based 
+Access Control (RBAC) security permissions.
+Release Secrets: Helm stores release metadata directly inside the cluster as Kubernetes Secrets within the target namespace.
+Chart Repositories: Charts are hosted and shared via HTTP servers or OCI registries like Docker Hub, GitHub Packages, or Artifact Hub.
+
+Common Helm Commands
+Managing applications with Helm relies on a few concise lifecycle commands:
+helm repo add: Registers a remote chart repository to your local system.
+helm search repo: Searches your added repositories for available charts.
+helm install: Deploys a chart to your cluster, creating a new release.
+helm upgrade: Updates an existing release with new configuration values or chart versions.
+helm rollback: Reverts a failed deployment to a previous successful release revision.
+helm uninstall: Deletes a release and all of its associated Kubernetes resources.
+
+Why Use Helm?
+
+Helm solves several structural challenges when scaling applications in production:
+Template Reusability: Write one deployment manifest and use variables to deploy it across dev, staging, and production environments.
+Dependency Management: Charts can declare dependencies on other charts (e.g., an app chart requiring a PostgreSQL chart to run first).
+Atomic Rollbacks: If an upgrade fails, a single command completely reverts the cluster state cleanly.
+Standardized Sharing: Simplifies installing complex third-party tools like Prometheus, cert-manager, or NGINX Ingress with a single
+command.
