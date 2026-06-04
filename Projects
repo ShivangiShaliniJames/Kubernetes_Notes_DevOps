@@ -1,4 +1,5 @@
 CI/CD Integration: Kubernetes with Jenkins CI/CD (9:08 - 10:10)
 GitOps with ArgoCD
-Microservices with MongoDB (9:09 - 10:25)
-.NET, Python Thre-tier App, Montoring with Prometheus, Grafana (10:25 - 
+Microservices with MongoDB (9:09 - 10:25) - 3 tier project
+.NET, Python Thre-tier App, Montoring with Prometheus, Grafana (10:25 - 11:11)
+k8s kind voting app (11:11 - 11:19 Monitoring) 
