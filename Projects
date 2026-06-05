@@ -3,3 +3,8 @@ GitOps with ArgoCD
 Microservices with MongoDB (9:09 - 10:25) - 3 tier project
 .NET, Python Thre-tier App, Montoring with Prometheus, Grafana (10:25 - 11:11)
 k8s kind voting app (11:11 - 11:19 Monitoring) 
+
+
+DevOps Mega Project using EKS (11:23 - Retail Store Sample App) - I worked on an E-Commerce application for a client which included front-end
+on Spring-boot java built using maven, backend on Node js, Go lang, database with MySql, PostGress, MongoDB, cache using Redis. Infrastructure built
+using Terraform, application deployed on EKS, Continuous Delivery using ArgoCD. 
