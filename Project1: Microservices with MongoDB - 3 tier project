@@ -1,0 +1,107 @@
+Microservices with MongoDB - 3 tier project
+
+New Project: Scalable 3-Tier Chat Application on Kubernetes
+
+I recently designed and deployed a full-stack, 3-tier Chat Application orchestrated entirely within a Kubernetes environment. This project
+allowed me to dive deep into container orchestration, cloud networking, and microservices management.
+
+System Architecture
+
+1. Frontend Tier: React/Node.js web UI exposed safely via a Kubernetes Ingress Controller for seamless external traffic routing.
+2. Backend Tier: Node.js API handling business logic and application state, managed as an independent scalable deployment.
+3. Database Tier: MongoDB instance deployed cluster-internal to manage chat data and secure user records.
+
+Key Troubleshooting & Engineering Wins
+No deployment goes perfectly, and the real learning happened while debugging the infrastructure:
+
+1. Internal DNS & Service Discovery Resolution: Resolved a backend-to-database connection failure. Discovered the backend configuration was
+targeting a generic mongodb:27017 address instead of the correct cluster-internal CoreDNS Service hostname mapping back to the database pod
+labels.
+2. Securing Local Environments: Overcame OS-level port binding constraints (permission denied on privileged port 80) during local testing
+cycles by leveraging secure high-port mapping mechanisms over kubectl port-forward.
+3. Production-Ready Ingress Routing: Successfully transitioned the architecture from basic port-forwarding to a robust production setup 
+using Ingress routing rules, enabling cleaner traffic distribution and path-based routing.
+
+Key Tech Stack: Kubernetes (k8s), Docker, Node.js, MongoDB, Ingress, DevOps, Microservices.
+
+README.md
+# Production-Ready 3-Tier Kubernetes Chat Application
+
+A scalable, containerized 3-tier chat application orchestrated inside a Kubernetes cluster. This project demonstrates microservices architecture, internal service discovery, traffic routing via an Ingress controller, and persistent data storage.
+
+## Architecture Overview
+
+The system is separated into three distinct layers to ensure isolation, independent scalability, and security:
+
+1. **Frontend Tier:** Web UI container running behind a Kubernetes Service.
+2. **Backend Tier:** Node.js/Express API handling core business logic, real-time messaging, and database operations.
+3. **Database Tier:** A stateful MongoDB instance running cluster-internal to manage user data and chat history.
+4. **Traffic Management:** A Kubernetes Ingress Controller routes external internet traffic safely to the frontend service.
+
+---
+
+## Tech Stack & Tools
+
+- **Orchestration:** Kubernetes (k8s)
+- **Containerization:** Docker
+- **Frontend:** Node.js (Web UI Layer)
+- **Backend:** Node.js / Express
+- **Database:** MongoDB
+- **Networking:** Kubernetes Services (ClusterIP), Ingress Controller, CoreDNS
+
+---
+
+## Getting Started & Deployment
+
+### 1. Prerequisites
+- A running Kubernetes cluster (Minikube, Kind, or a Cloud Provider)
+- `kubectl` CLI configured
+- An active Ingress controller (e.g., NGINX Ingress Controller)
+
+### 2. Deploying the Application
+
+Apply the Kubernetes manifests in your cluster:
+
+```bash
+# Create the dedicated namespace
+kubectl create namespace chat-app
+
+# Deploy Database, Backend, and Frontend resources
+kubectl apply -f k8s/db-deployment.yaml -n chat-app
+kubectl apply -f k8s/backend-deployment.yaml -n chat-app
+kubectl apply -f k8s/frontend-deployment.yaml -n chat-app
+
+# Deploy Ingress routing rules
+kubectl apply -f k8s/ingress.yaml -n chat-app
+```
+
+---
+
+## Lessons Learned & Infrastructure Troubleshooting
+
+Engineering this project involved overcoming several real-world cloud networking challenges:
+
+### CoreDNS Service Discovery Matching
+* **The Problem:** The backend service threw `AuthenticationFailed` / connection errors when trying to connect to MongoDB via a hardcoded `mongodb:27017` connection string.
+* **The Resolution:** Fixed a mismatch between the environment variables and the database pod selector labels. Correctly mapped the backend's environment variables to target the exact cluster-internal Kubernetes Service name exposed by the MongoDB deployment.
+
+### Privileged Port Constraints (Local Debugging)
+* **The Problem:** Attempting to run `kubectl port-forward` directly onto local port 80 failed with a `permission denied (bind)` error.
+* **The Resolution:** Bypassed operating system security restrictions regarding privileged ports (<1024) by routing traffic through safe, unprivileged high ports (e.g., `kubectl port-forward service/frontend 8080:80`).
+
+### Transition to Ingress
+* Moved away from temporary local port-forwarding commands to a stable, production-grade architecture by implementing path-based routing rules via a **Kubernetes Ingress Controller**.
+
+Resume Bullet Points
+
+1. Designed and orchestrated a containerized 3-tier microservices chat application using Kubernetes, separating frontend UI, Node.js API 
+backend, and cluster-internal MongoDB database layers.
+
+2. Configured and deployed a Kubernetes Ingress Controller to establish production-ready routing paths, moving away from local 
+port-forwarding workflows to enable safe external traffic entry.
+
+3. Resolved cluster service discovery bottlenecks by debugging CoreDNS mismatches between backend deployment environment strings and 
+internal database Service selectors.
+
+4. Mitigated OS-level security constraints during infrastructure testing cycles by managing secure unprivileged port mappings (8080:80) 
+over kubectl.
