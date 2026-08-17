@@ -79,6 +79,9 @@ Bare Metal         Full control of hardware   Kubeadm setup on your own servers
 A Kubernetes cluster turns multiple separate computers into one massive supercomputer for running apps. 
 It automates the hard work of managing software so humans do not have to watch it 24/7.
 
+Port 80 and port 443 are standard network communication channels that direct web traffic to a server, with port 80 handling unencrypted 
+data and port 443 handling secure data.
+
 Set up on local/AWS EC2: (Video :28:00 - :43:00)
 Installed Kind and Kubectl
 
