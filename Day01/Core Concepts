@@ -82,9 +82,39 @@ It automates the hard work of managing software so humans do not have to watch i
 Port 80 and port 443 are standard network communication channels that direct web traffic to a server, with port 80 handling unencrypted 
 data and port 443 handling secure data.
 
+Access all the material to create Kubernetes clusters through KIND, Minikube etc using the repository - https://github.com/LondheShubham153/kubestarter
 Set up on local/AWS EC2: (Video :28:00 - :43:00)
 Installed Kind and Kubectl
+
+Creating Config file for Kind Cluster
+We use a configuration file when creating a KIND (Kubernetes in Docker) cluster to override default single-node settings and declaratively
+customize the cluster's architecture. While running kind create cluster immediately provisions a basic, single-node cluster, a YAML 
+configuration file is required for complex environments.
+
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  extraPortMappings:
+  - containerPort: 80
+    hostPort: 8080
+- role: worker
+- role: worker
+
+kind create cluster --config kind-config.yaml
 
 Installed Minikube (Video :56:00 - 1:03)
 
 Installed Kubeadm (Video :1:04 - 1:19)
+(For Kubeadm)
+In a Kubernetes cluster, port 6443 is the default port used by the kube-apiserver (Kubernetes API Server) to accept secure HTTPS traffic. 
+It acts as the primary communication gateway for the entire cluster.
+
+What is Containerd?
+Containerd is a lightweight, industry-standard container runtime that manages the complete lifecycle of a container on a host machine. 
+It handles tasks like transferring container images, supervising execution, managing low-level storage, and attaching network interfaces.
+
+Namespace
+In Kubernetes, a Namespace is a logical partition inside a single cluster used to isolate groups of resources and prevent naming conflicts.
+Think of a Namespace like a folder on your computer; you cannot have two files with the exact same name in the same folder, but you can if
+they are placed in separate folders.
